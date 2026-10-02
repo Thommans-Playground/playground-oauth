@@ -1,0 +1,29 @@
+@startuml identity-context-map
+!include _style.puml
+title playground-oauth - Context Map (strategic)
+
+' ---- Core subdomain ----
+' Account Registration & Authentication (FR-01..FR-06) and Session Management
+' (FR-07..FR-10) are FEATURES within this one bounded context, not separate
+' contexts — see the feature groupings in docs/requirements/functional.md.
+package "Identity & Access\n«Core»" as IDENTITY CORE_COLOR
+
+' ---- External identity providers: undifferentiated «Generic» subdomains we
+' integrate with but don't build. Each OAuthIdentityProvider adapter
+' (ADR-0002) is the anti-corruption layer translating their model into ours.
+package "Google\n«Generic · External»" as GOOGLE EXTERNAL_COLOR
+package "Microsoft\n«Generic · External»" as MICROSOFT EXTERNAL_COLOR
+package "GitHub\n«Generic · External»" as GITHUB EXTERNAL_COLOR
+
+IDENTITY ..> GOOGLE : «ACL»
+IDENTITY ..> MICROSOFT : «ACL»
+IDENTITY ..> GITHUB : «ACL»
+
+' ---- PLANNED, NOT BUILT: kept here as a commented placeholder so the
+' strategic shape isn't lost if a fourth provider is ever added — not a
+' decision, and not reflected in code. Un-comment (and write the ADR/FRs)
+' if it's actually pursued. ----
+' package "Okta\n«Generic · External · planned»" as OKTA PLANNED_COLOR
+' IDENTITY ..> OKTA : «planned ACL»
+
+@enduml

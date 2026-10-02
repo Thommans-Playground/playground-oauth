@@ -1,0 +1,31 @@
+@startuml identity-use-case-diagram
+!include _style.puml
+title playground-oauth - Use Case Diagram
+
+left to right direction
+
+actor "User" as User
+
+rectangle "playground-oauth" {
+  usecase "Register with\nEmail + Password\n(UC-01)" as UC1
+  usecase "Log In with\nEmail + Password\n(UC-02)" as UC2
+  usecase "Log In with\nOAuth Provider\n(UC-03)" as UC3
+  usecase "Log Out\n(UC-04)" as UC4
+}
+
+User --> UC1
+User --> UC2
+User --> UC3
+User --> UC4
+
+note bottom of User
+  One actor, reaching every use case through the web UI
+  (REST). There is no MCP or other driving adapter in
+  this project — see CLAUDE.md.
+end note
+
+' Grows as new-use-case scaffolds FR-05/FR-06 (Link/Unlink
+' Social Identity) and FR-09/FR-10 (session expiry, list +
+' revoke sessions).
+
+@enduml

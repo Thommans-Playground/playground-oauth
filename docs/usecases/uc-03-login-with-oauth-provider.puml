@@ -1,0 +1,87 @@
+@startuml uc-03-login-with-oauth-provider
+!include ../architecture/_style.puml
+title UC-03: Log In with OAuth Provider (Google / Microsoft / GitHub)
+
+actor Actor
+
+box "Driving Adapter" #LightBlue
+participant "REST Router" as REST
+end box
+
+box "Hexagon" #LightYellow
+participant "LoginWithOAuthProvider\n(application)" as UseCase
+participant "User\n(domain)" as Domain
+participant "OAuthIdentityProvider\n(port)" as OAuthPort
+participant "UserRepository\n(port)" as UserPort
+participant "SessionRepository\n(port)" as SessionPort
+end box
+
+box "Driven Adapters" #LightGreen
+participant "GoogleOAuthAdapter\n(or Microsoft/Github)" as ProviderAdapter
+participant "PostgresUserRepository" as Postgres
+participant "RedisSessionRepository" as Redis
+end box
+
+box "External" #EEEEEE
+participant "Google / Microsoft / GitHub" as Provider
+end box
+
+Actor -> REST : GET /auth/oauth/{provider}/start
+REST -> OAuthPort : [UC-03.1] authorization_url(state, pkce_challenge)
+OAuthPort -> ProviderAdapter : authorization_url(...)
+ProviderAdapter --> OAuthPort : url
+OAuthPort --> REST : url
+REST --> Actor : 302 redirect to provider
+
+Actor -> Provider : [UC-03.2] authenticate + consent
+Provider --> Actor : 302 redirect to callback (code, state)
+
+Actor -> REST : GET /auth/oauth/{provider}/callback?code&state
+
+alt state matches
+  REST -> UseCase : [UC-03.3] LoginWithOAuthProviderInput(code)
+  UseCase -> OAuthPort : [UC-03.4] exchange_code(code)
+  OAuthPort -> ProviderAdapter : exchange_code(code)
+  ProviderAdapter -> Provider : token + userinfo request
+  Provider --> ProviderAdapter : tokens + profile
+
+  alt verified email present
+    ProviderAdapter --> OAuthPort : (provider_user_id, verified_email)
+    OAuthPort --> UseCase : (provider_user_id, verified_email)
+
+    UseCase -> UserPort : [UC-03.5] get_by_provider_identity(...) / get_by_email(...)
+    UserPort --> UseCase : existing User, or none
+
+    UseCase -> Domain : [UC-03.6] User.from_oauth(...) or User.link_identity(...)
+    Domain --> UseCase : User
+
+    UseCase -> UserPort : [UC-03.7] save(user)
+    UserPort -> Postgres : save(user)
+    UseCase -> SessionPort : save(Session.start(user_id, provider))
+    SessionPort -> Redis : save(session)
+    Redis --> SessionPort : ok
+    SessionPort --> UseCase : Session
+
+    UseCase --> REST : [UC-03.8] Session
+    REST --> Actor : 302 redirect, logged in + Set-Cookie: session_id
+  else no verified email
+    ProviderAdapter --> OAuthPort : error
+    OAuthPort --> UseCase : NoVerifiedEmail
+    UseCase --> REST : [UC-03.4b] NoVerifiedEmail
+    REST --> Actor : 401 Unauthorized
+  end
+else exchange failed
+  OAuthPort --> UseCase : [UC-03.4a] ExchangeFailed
+  UseCase --> REST : ExchangeFailed
+  REST --> Actor : 401 Unauthorized
+end
+else state mismatch
+  REST --> Actor : [UC-03.3a] 400 Bad Request
+end
+
+note over UseCase, Redis
+  [UC-03.n] tags map to Main Success Scenario step n
+  in uc-03-login-with-oauth-provider.md ("3a"/"4a"/"4b" = the matching Extensions).
+end note
+
+@enduml

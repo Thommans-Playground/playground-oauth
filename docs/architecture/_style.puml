@@ -1,0 +1,57 @@
+' Shared PlantUML style for playground-oauth diagrams.
+'
+' Included by the strategic diagrams in this folder (`!include _style.puml`)
+' and by the per-use-case sequence diagrams in docs/usecases/
+' (`!include ../architecture/_style.puml`). Only shared skinparams and the
+' DDD stereotype color palette live here — diagram-specific colors (e.g. a
+' use case's adapter/hexagon/driven-adapter boxes) stay inline in the
+' diagram that needs them.
+
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam arrowColor #555555
+skinparam arrowFontColor #555555
+skinparam noteBackgroundColor #FFFDE7
+skinparam noteBorderColor #CCCCCC
+
+skinparam package {
+    BorderColor #888888
+    FontColor #222222
+}
+skinparam participant {
+    BorderColor #888888
+    BackgroundColor #FFFFFF
+}
+skinparam actor {
+    BorderColor #888888
+}
+skinparam usecase {
+    BorderColor #888888
+    BackgroundColor #FFFFFF
+}
+skinparam database {
+    BorderColor #888888
+}
+
+' DDD context-map stereotype colors (Evans/Vernon), used in context-map.puml:
+' package "Notes\n«Core»" as NOTES CORE_COLOR
+!define CORE_COLOR #FFD966
+!define SUPPORTING_COLOR #F0F0F0
+!define SHARED_KERNEL_COLOR #E6E6E6
+!define EXTERNAL_COLOR #E8E8E8
+!define PLANNED_COLOR #DDDDDD
+
+' DDD tactical-pattern colors, used in *-domain-model.puml class diagrams
+' (only DDD Distilled building blocks are tinted; «ref»/infrastructure
+' classes stay white — they aren't tactical blocks owned by that context):
+'   skinparam class {
+'     BackgroundColor<<root entity>>  ROOT_ENTITY_COLOR
+'     BackgroundColor<<entity>>       ENTITY_COLOR
+'     BackgroundColor<<value object>> VALUE_OBJECT_COLOR
+'     BackgroundColor<<domain event>> DOMAIN_EVENT_COLOR
+'   }
+!define ROOT_ENTITY_COLOR #FFE6CC
+!define ENTITY_COLOR #FFF2CC
+!define VALUE_OBJECT_COLOR #D5E8D4
+!define DOMAIN_EVENT_COLOR #F8CECC

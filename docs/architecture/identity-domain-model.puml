@@ -1,0 +1,94 @@
+@startuml identity-domain-model
+!include _style.puml
+hide circle
+hide empty members
+
+' ----- Legend colours: root entity #FFE6CC, entity #FFF2CC, value object
+' #D5E8D4 (see _style.puml's *_COLOR defines). Only DDD Distilled tactical
+' blocks are tinted; no «ref»/infrastructure classes here.
+skinparam class {
+  BackgroundColor<<root entity>>  ROOT_ENTITY_COLOR
+  BackgroundColor<<entity>>       ENTITY_COLOR
+  BackgroundColor<<value object>> VALUE_OBJECT_COLOR
+}
+
+title playground-oauth - Identity & Access «context» - Domain Model
+
+' AS-DOCUMENTED aggregates: User and Session (see glossary.md for the
+' Entity/VO reasoning). Two aggregate roots, two repositories (Evans).
+'   • User is the root for Email/PasswordCredential/LinkedIdentity — none
+'     of these are persisted or looked up independently of User.
+'   • Session is a SEPARATE aggregate root, referencing User only by UserId
+'     (no embedding) — different lifecycle, different repository, Redis-
+'     backed per ADR-0001.
+'   • Equality: User, LinkedIdentity, and Session are identity-based; every
+'     Value Object here is equal-by-value (the default).
+' Method PARAMETERS are deliberately omitted — this model shows parts,
+' boundaries, and language; signatures live in the code.
+' NOT DRAWN: UserRepository/SessionRepository/PasswordHasher/Clock/
+' IdGenerator/OAuthIdentityProvider (ports, not tactical DDD building
+' blocks — see ADR-0001/0002 for adapter wiring).
+
+package "«aggregate»\nUser" as USERAGG {
+  class User <<root entity>> {
+    +  id
+    +  «vo»: email
+    +  «vo»: password_credential (optional)
+    +  linked_identities
+    --
+    +  {static} register(email, password)
+    +  {static} from_oauth(provider, provider_user_id, email)
+    +  link_identity(provider, provider_user_id)
+  }
+
+  class UserId <<value object>> {
+    +  value
+  }
+
+  class Email <<value object>> {
+    +  value
+  }
+
+  class PasswordCredential <<value object>> {
+    +  hash
+    +  algorithm
+  }
+
+  class LinkedIdentity <<entity>> {
+    +  «vo»: provider
+    +  provider_user_id
+    +  linked_at
+  }
+
+  class OAuthProvider <<value object>> {
+    +  value
+  }
+
+  User *-- "1" UserId
+  User *-- "1" Email
+  User *-- "0..1" PasswordCredential
+  User *-- "0..*" LinkedIdentity
+  LinkedIdentity *-- "1" OAuthProvider
+}
+
+package "«aggregate»\nSession" as SESSIONAGG {
+  class Session <<root entity>> {
+    +  id
+    +  user_id
+    +  auth_method
+    +  created_at
+    +  expires_at
+    --
+    +  {static} start(user_id, auth_method, now)
+  }
+
+  class SessionId <<value object>> {
+    +  value
+  }
+
+  Session *-- "1" SessionId
+}
+
+Session ..> UserId : references (by id only)
+
+@enduml

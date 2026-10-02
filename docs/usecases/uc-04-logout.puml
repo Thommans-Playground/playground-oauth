@@ -1,0 +1,37 @@
+@startuml uc-04-logout
+!include ../architecture/_style.puml
+title UC-04: Log Out
+
+actor Actor
+
+box "Driving Adapter" #LightBlue
+participant "REST Router" as REST
+end box
+
+box "Hexagon" #LightYellow
+participant "LogOut\n(application)" as UseCase
+participant "SessionRepository\n(port)" as Port
+end box
+
+box "Driven Adapter" #LightGreen
+participant "RedisSessionRepository" as Redis
+database "Redis" as DB
+end box
+
+Actor -> REST : POST /auth/logout (Cookie: session_id)
+REST -> UseCase : [UC-04.1-2] LogOut(session_id)
+UseCase -> Port : [UC-04.3] delete(session_id)
+Port -> Redis : [UC-04.4] delete(session_id)
+Redis -> DB : DEL
+DB --> Redis : ok (whether or not a key existed)
+Redis --> Port : ok
+Port --> UseCase : ok
+UseCase --> REST : [UC-04.5] ok
+REST --> Actor : 204 No Content + clear session cookie
+
+note over UseCase, DB
+  [UC-04.n] tags map to Main Success Scenario step n in uc-04-logout.md.
+  "3a" (no session found) follows the same ok/204 path — delete is idempotent.
+end note
+
+@enduml
